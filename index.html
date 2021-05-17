@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <script src="https://cdn.firebase.com/js/client/2.3.2/firebase.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>chatApp</title>
+</head>
+
+<body>
+    <div class="panel-default">
+        <div class="panel-heading">
+            <p>リアルタイムチャット</p>
+        </div>
+        <div id="scroller" class="panel-body">
+            <ul id='messages'></ul>
+        </div>
+        <div class="panel-footer">
+            <input type='text' class="form-control" id="nameInput" placeholder="ユーザー名を入力してください">
+        </div>
+        <div class="panel-footer">
+            <input type='text' class="form-control" id="messageInput" placeholder="メッセージ内容を入力してください">
+        </div>
+    </div>
+
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase.js"></script>
+
+    <!-- TODO: Add SDKs for Firebase products that you want to use
+         https://firebase.google.com/docs/web/setup#available-libraries -->
+
+    <script>
+        // Your web app's Firebase configuration
+        var firebaseConfig = {
+            apiKey: "AIzaSyBL5knj-Z1-TPf4aXUU4p561i-1gbi5qVc",
+            authDomain: "chat-app-cc700.firebaseapp.com",
+            projectId: "chat-app-cc700",
+            storageBucket: "chat-app-cc700.appspot.com",
+            messagingSenderId: "569235274539",
+            appId: "1:569235274539:web:ead45692dc20d066bae36e"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore().collection('20210518 chat-app');
+    </script>
+    <script>
+        function convertFromFirestoreTimestampToDatetime(timestamp) {
+            const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+            const Y = _d.getFullYear();
+            const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+            const d = _d.getDate().toString().padStart(2, '0');
+            const H = _d.getHours().toString().padStart(2, '0');
+            const i = _d.getMinutes().toString().padStart(2, '0');
+            const s = _d.getSeconds().toString().padStart(2, '0');
+            return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+        }
+
+
+        var messagesRef = new Firebase('https://qiita.firebaseio.com/');
+
+        var messageField = $('#messageInput');
+        var nameField = $('#nameInput');
+        var messageList = $('#messages');
+
+        // ENTERキーを押した時に発動する
+        messageField.keypress(function (e) {
+            if (e.keyCode == 13) {
+                //フォームに入力された情報
+                var username = nameField.val();
+                var message = messageField.val();
+                var time = firebase.firestore.FieldValue.serverTimestamp();
+                //データベースに保存する
+                messagesRef.push({ name: username, text: message, time: time });
+                messageField.val('');
+
+                $('#scroller').scrollTop($('#messages').height());
+                db.add({
+                    nameField: $('#nameInput').val(),
+                    messageField: $('#messageInput').val(),
+                    time: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+            }
+        });
+
+        // データベースにデータが追加されたときに発動する
+        messagesRef.limitToLast(10).on('child_added', function (snapshot) {
+            //取得したデータ
+            var data = snapshot.val();
+            var username = data.name || "anonymous";
+            var message = data.text;
+            var time = data.time;
+
+            //取得したデータの名前が自分の名前なら右側に吹き出しを出す
+            if (username == nameField.val()) {
+
+                var messageElement = $("<il><p class='sender_name me'>" + username + "</p><p class='right_balloon'>" + message + "</p><p class='clear_balloon'></p></il>");
+
+            } else {
+
+                var messageElement = $("<il><p class='sender_name'>" + username + "</p><p class='left_balloon'>" + message + "</p><p class='clear_balloon'></p></il>");
+
+            }
+            //HTMLに取得したデータを追加する
+            messageList.append(messageElement)
+
+            //一番下にスクロールする
+            messageList[0].scrollTop = messageList[0].scrollHeight;
+        });
+    </script>
+</body>
+
+</html>
